@@ -25,8 +25,11 @@ class TradeStationStopHandler implements TrainStopHandler {
       .trainGold(
         rel(trainOwner, stationOwner),
         trainExecution.tradeStopsVisited(),
-        trainOwner,
+        station.unit.level(),
+        trainExecution.sourceStationLevel(),
+        trainExecution.owner(),
       );
+    
     // Share revenue with the station owner if it's not the current player
     if (trainOwner !== stationOwner) {
       stationOwner.addGold(gold, station.tile());

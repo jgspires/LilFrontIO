@@ -1068,7 +1068,7 @@ export class NationStructureBehavior {
     }
 
     const maxTradeGold = Math.max(
-      Number(game.config().trainGold("ally", 0, player)),
+      Number(game.config().trainGold("ally", 0, 1, 1, player)),
       1,
     );
     const result: Array<{
@@ -1079,7 +1079,7 @@ export class NationStructureBehavior {
 
     // Own structures — weighted by "self" trade gold.
     const selfWeight =
-      Number(game.config().trainGold("self", 0, player)) / maxTradeGold;
+      Number(game.config().trainGold("self", 0, 1, 1, player)) / maxTradeGold;
     for (const unit of player.units(
       UnitType.City,
       UnitType.Port,
@@ -1105,7 +1105,7 @@ export class NationStructureBehavior {
           ? "ally"
           : "other";
       const weight =
-        Number(game.config().trainGold(relType, 0, player)) / maxTradeGold;
+        Number(game.config().trainGold(relType, 0, 1, 1, player)) / maxTradeGold;
       for (const unit of neighbor.units(
         UnitType.City,
         UnitType.Port,

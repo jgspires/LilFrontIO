@@ -215,10 +215,11 @@ export class Config {
   trainGold(
     rel: "self" | "team" | "ally" | "other",
     citiesVisited: number,
+    stationLevel: number,
+    sourceLevel: number,
     player: Player | PlayerView,
   ): Gold {
-    // No penalty for the first 10 cities.
-    citiesVisited = Math.max(0, citiesVisited - 9);
+    // No penalty for lots of cities at all.
     let baseGold: number;
     switch (rel) {
       case "ally":
@@ -232,8 +233,21 @@ export class Config {
         baseGold = 10_000;
         break;
     }
-    const distPenalty = citiesVisited * 5_000;
-    const gold = Math.max(5000, baseGold - distPenalty);
+    // Each level at station/stop multiplies base value by level
+    // (city lv 2 gives 10k * 2 = 20k to self as opposed to just always 10k)
+    const stationLvMult = stationLevel
+    // Each *different* city visited increases profitability by a bit, encouraging spreading of cities
+    const cityVisitsMult = 1 + ((citiesVisited - 1) * 0.05)
+    // Source factory level gives small exponential bonuses as economy of scale.
+    /** lv | totalGold (self)
+     *   1 | 0^1.01 = 0 + 10k
+     *   2 | 1^1.02 = 1k + 10k = 11k
+     *   3 | 2^1.03 = 2.042k + 10k = 12.042k
+     *   4 | 3^1.04 = 3.134k + 10k = 13.134k
+     */ 
+    const sourceLvBonus = 1000 * Math.pow(sourceLevel, sourceLevel * 0.01 + 1.00)
+    const totalGold = ((baseGold  * stationLvMult) + sourceLvBonus) * cityVisitsMult
+    const gold = Math.max(5000, totalGold);
     return toInt(gold * this.goldMultiplierFor(player));
   }
 
@@ -247,12 +261,14 @@ export class Config {
     return this.trainStationMaxRange();
   }
 
-  tradeShipGold(dist: number, player: Player | PlayerView): Gold {
+  tradeShipGold(dist: number, sourceLv: number, player: Player | PlayerView): Gold {
     // Sigmoid: concave start, sharp S-curve middle, linear end - heavily punishes trades under range debuff.
     const debuff = this.tradeShipShortRangeDebuff();
     const baseGold =
       75_000 / (1 + Math.exp(-0.03 * (dist - debuff))) + 50 * dist;
-    return BigInt(Math.floor(baseGold * this.goldMultiplierFor(player)));
+    // Small percentual gold increase per level of source port. Stacked ports made slightly better.
+    const totalGold = baseGold * (1 + ((sourceLv - 1) * 0.02))
+    return BigInt(Math.floor(totalGold * this.goldMultiplierFor(player)));
   }
 
   // Probability of trade ship spawn = 1 / tradeShipSpawnRate

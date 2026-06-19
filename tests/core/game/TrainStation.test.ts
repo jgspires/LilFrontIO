@@ -39,7 +39,7 @@ describe("TrainStation", () => {
     game = {
       ticks: vi.fn().mockReturnValue(123),
       config: vi.fn().mockReturnValue({
-        trainGold: (rel: string, _tradeStopsVisited: number) =>
+        trainGold: (rel: string, _tradeStopsVisited: number, _stationLevel: number) =>
           rel !== "other" ? BigInt(1000) : BigInt(500),
       }),
       addUpdate: vi.fn(),
@@ -69,6 +69,7 @@ describe("TrainStation", () => {
       owner: vi.fn().mockReturnValue(player),
       level: vi.fn(),
       tradeStopsVisited: vi.fn().mockReturnValue(0),
+      sourceStationLevel: vi.fn().mockReturnValue(1),
     } as any;
   });
 
@@ -141,6 +142,7 @@ describe("TrainStation", () => {
     expect(trainGoldSpy).toHaveBeenCalledWith(
       expect.any(String),
       3,
+      1,
       expect.anything(),
     );
   });
@@ -230,35 +232,28 @@ describe("Config.trainGold trade stop penalty", () => {
     mockPlayer = { isLobbyCreator: () => false } as unknown as Player;
   });
 
-  it("returns full base gold within free window (stops 0-9)", () => {
-    // first 10 stops (0-9) are free — no penalty
-    expect(config.trainGold("self", 0, mockPlayer)).toBe(10_000n);
-    expect(config.trainGold("self", 9, mockPlayer)).toBe(10_000n);
+  it("returns full base gold", () => {
+    expect(config.trainGold("self", 0, 1, 1, mockPlayer)).toBe(10_000n);
+    expect(config.trainGold("self", 9, 1, 1, mockPlayer)).toBe(10_000n);
   });
 
-  it("reduces gold by 5k per stop after the free window", () => {
-    // stop 10: effective = 10-9 = 1 -> 10k - 5k = 5k
-    expect(config.trainGold("self", 10, mockPlayer)).toBe(5_000n);
+  it("returns full gold with target station level bonus", () => {
+    expect(config.trainGold("self", 0, 3, 1, mockPlayer)).toBe(30_000n);
+    expect(config.trainGold("self", 9, 3, 1, mockPlayer)).toBe(30_000n);
   });
 
-  it("floors at 5k when penalty exceeds base gold", () => {
-    // stop 12: effective = 3 -> 10k - 15k -> floor at 5k
-    expect(config.trainGold("self", 12, mockPlayer)).toBe(5_000n);
+  it("returns full gold with source station level bonus", () => {
+    expect(config.trainGold("self", 0, 3, 2, mockPlayer)).toBe(12_042n);
+    expect(config.trainGold("self", 9, 3, 2, mockPlayer)).toBe(12_042n);
   });
 
-  it("floors at 5k for ally base even with heavy penalty", () => {
-    // ally base 35k, stop 20: effective = 11 -> penalty 55k -> floor at 5k
-    expect(config.trainGold("ally", 20, mockPlayer)).toBe(5_000n);
+  it("does not reduces gold per stop in longest tracks", () => {
+    expect(config.trainGold("self", 10, 1, 1, mockPlayer)).toBe(10_000n);
   });
 
-  it("ally base gold reduces correctly after free window", () => {
-    // ally base 35k, stop 11: effective = 2 -> 35k - 10k = 25k
-    expect(config.trainGold("ally", 11, mockPlayer)).toBe(25_000n);
-  });
-
-  it("other/team base gold reduces correctly after free window", () => {
+  it("other/team base gold does not reduce due to infinite free window", () => {
     // other base 25k, stop 10: effective = 1 -> 25k - 5k = 20k
-    expect(config.trainGold("other", 10, mockPlayer)).toBe(20_000n);
-    expect(config.trainGold("team", 10, mockPlayer)).toBe(20_000n);
+    expect(config.trainGold("other", 10, 1, 1, mockPlayer)).toBe(25_000n);
+    expect(config.trainGold("team", 10, 1, 1, mockPlayer)).toBe(25_000n);
   });
 });

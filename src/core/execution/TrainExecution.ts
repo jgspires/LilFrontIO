@@ -42,6 +42,10 @@ export class TrainExecution implements Execution {
     return this._tradeStopsVisited;
   }
 
+  public sourceStationLevel(): number {
+    return this.source.unit.level()
+  }
+
   init(mg: Game, ticks: number): void {
     this.mg = mg;
     const stations = this.railNetwork.findStationsPath(
