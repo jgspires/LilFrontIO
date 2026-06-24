@@ -257,9 +257,6 @@ export class Config {
   trainStationMaxRange(): number {
     return 110;
   }
-  railroadMaxSize(): number {
-    return this.trainStationMaxRange();
-  }
 
   tradeShipGold(dist: number, sourceLv: number, player: Player | PlayerView): Gold {
     // Sigmoid: concave start, sharp S-curve middle, linear end - heavily punishes trades under range debuff.
